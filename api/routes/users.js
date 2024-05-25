@@ -7,4 +7,6 @@ router.post("/signup", UsersController.users_signup);
 
 router.post("/login", UsersController.users_login);
 
+router.post("/facebook-login", UsersController.facebook_login);
+
 module.exports = router;
