@@ -8,7 +8,7 @@ exports.users_signup = (req, res, next) => {
     User.findOne({ email: req.body.email })
         .then(user => {
             if (user) {
-                if (user.loginType.includes('facebook')) {
+                if ((user.loginType.includes('facebook')) || (user.loginType.includes('google'))) {
                     bcrypt.hash(req.body.password, 10, (err, hash) => {
                         if (err) {
                             return res.status(500).json({
@@ -23,7 +23,7 @@ exports.users_signup = (req, res, next) => {
                                 .then((result) => {
                                     console.log(result);
                                     res.status(200).json({
-                                        message: 'Password updated and email login added for Facebook login'
+                                        message: 'Password and email updated'
                                     });
                                 })
                                 .catch((err) => {
@@ -134,7 +134,55 @@ exports.facebook_login = (req, res, next) => {
             } else {
                 user.fullname = name;
                 if (!user.loginType.includes('facebook')) {
-                    user.loginType = Array.isArray(user.loginType) ? [...user.loginType, 'facebook'] : ['email', 'facebook']
+                    user.loginType.push('facebook');
+                }
+                return user.save();
+            }
+        })
+        .then(savedUser => {
+            const token = jwt.sign(
+                {
+                    email: savedUser.email,
+                    userId: savedUser._id
+                },
+                process.env.JWT_KEY,
+                {
+                    expiresIn: '1h'
+                }
+            );
+            res.status(200).json({
+                message: 'Auth successful',
+                token: token
+            })
+        })
+        .catch((err) => {
+            console.log(err);
+            res.status(500).json({
+                error: err
+            })
+        })
+}
+
+exports.google_login = (req, res, next) => {
+    const { email, name } = req.body; 
+
+    const userEmail = email || `noemail_${new mongoose.Types.ObjectId()}@google.com`
+
+    User.findOne({ email: userEmail })
+        .then(user => {
+            if (!user) {
+                const newUser = new User({
+                    _id: new mongoose.Types.ObjectId(),
+                    fullname: name,
+                    email: userEmail,
+                    password: null,
+                    loginType: ['google']
+                })
+                return newUser.save();
+            } else {
+                user.fullname = name;
+                if (!user.loginType.includes('google')) {
+                    user.loginType.push('google');
                 }
                 return user.save();
             }
