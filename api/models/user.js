@@ -22,7 +22,9 @@ const userSchema = mongoose.Schema({
         enum: ['email', 'facebook', 'google'],
         required: true,
         default: ['email']
-    }
+    },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
 })
 
 module.exports = mongoose.model('User', userSchema)

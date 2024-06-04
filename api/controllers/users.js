@@ -3,12 +3,13 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
+const sendEmail = require('../untils/email');
 
 exports.users_signup = (req, res, next) => {
     User.findOne({ email: req.body.email })
         .then(user => {
             if (user) {
-                if ((user.loginType.includes('facebook')) || (user.loginType.includes('google'))) {
+                if (!user.loginType.includes('email') && ((user.loginType.includes('facebook')) || (user.loginType.includes('google')))) {
                     bcrypt.hash(req.body.password, 10, (err, hash) => {
                         if (err) {
                             return res.status(500).json({
@@ -205,6 +206,90 @@ exports.google_login = (req, res, next) => {
         })
         .catch((err) => {
             console.log(err);
+            res.status(500).json({
+                error: err
+            })
+        })
+}
+
+exports.forgot_password = (req, res, next) => {
+    User.findOne({ email: req.body.email })
+        .then((user) => {
+            if (!user) {
+                return res.status(404).json({
+                    error: 'Email not found'
+                })
+            } else {
+                const token = jwt.sign(
+                    {
+                        email: user.email,
+                        id: user._id
+                    },
+                    process.env.JWT_KEY,
+                    {
+                        expiresIn: '5m'
+                    }
+                )
+                const link = `${process.env.BASE_URL_CLIENT}reset-password/${user._id}/${token}`;
+                user.resetPasswordToken = token;
+                user.resetPasswordExpires = Date.now() + 5 * 60 * 1000;
+                user.save();
+                sendEmail(req.body.email, link)
+                return res.status(200).json({
+                    message: 'Send email successfully!'
+                })
+            }
+        })
+        .catch(err => {
+            console.log(err);
+            res.status(500).json({
+                error: err
+            })
+        })
+}
+
+exports.reset_password = async (req, res, next) => {
+    const { id, token } = req.params;
+    const { password } = req.body;
+    User.findOne({ _id: id })
+        .then(user => {
+            if (user) {
+                if (user.resetPasswordToken !== token || user.resetPasswordExpires < Date.now()) {
+                    return res.status(401).json({ message: 'Invalid or expired token' });
+                } else {
+                    console.log(req.params);
+                    bcrypt.hash(password, 10, (err, hash) => {
+                        if (err) {
+                            return res.status(500).json({
+                                error: `Lỗi: ${err}`
+                            })
+                        } else {
+                            user.password = hash
+                            user.resetPasswordToken = undefined;
+                            user.resetPasswordExpires = undefined;
+                            user.save()
+                                .then((result) => {
+                                    console.log(result);
+                                    res.status(200).json({
+                                        message: 'Reset password successfully!'
+                                    })
+                                })
+                                .catch((err) => {
+                                    console.log(err);
+                                    res.status(500).json({
+                                        error: err
+                                    });
+                                });
+                        }
+                    });
+                }
+            } else {
+                return res.status(404).json({
+                    message: 'User not exist!'
+                })
+            }
+        })
+        .catch(err => {
             res.status(500).json({
                 error: err
             })

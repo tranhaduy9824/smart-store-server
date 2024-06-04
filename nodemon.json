@@ -1,6 +1,10 @@
 {
     "env": {
+        "BASE_URL_SERVER": "http://localhost:3001/",
+        "BASE_URL_CLIENT": "http://localhost:3000/",
         "MONGO_ATLAS_PW": "duyth22it",
-        "JWT_KEY": "secret"
+        "JWT_KEY": "secret",
+        "EMAIL": "tranhaduy204@gmail.com",
+        "PASSWORD_EMAIL": "oeqk ivsj ohsa nizx"
     }
 }
