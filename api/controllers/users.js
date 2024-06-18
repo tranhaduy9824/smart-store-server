@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 const User = require('../models/user');
 const sendEmail = require('../untils/email');
@@ -311,6 +312,9 @@ exports.update_avatar = async (req, res, next) => {
                 });
                 user.avatar = result.secure_url;
                 await user.save();
+                
+                await fs.promises.unlink(req.file.path);     
+
                 res.status(200).json({
                     message: 'Update avatar successfully!'
                 });
