@@ -5,6 +5,9 @@
         "MONGO_ATLAS_PW": "duyth22it",
         "JWT_KEY": "secret",
         "EMAIL": "tranhaduy204@gmail.com",
-        "PASSWORD_EMAIL": "oeqk ivsj ohsa nizx"
+        "PASSWORD_EMAIL": "oeqk ivsj ohsa nizx",
+        "CLOUDINARY_USER_NAME": "djhqdss0k",
+        "CLOUDINARY_API_KEY": "867282884778743",
+        "CLOUDINARY_API_SECRET": "a2SXAO2zLYE3QDiG4rmlA1dPWpc"
     }
 }

@@ -4,6 +4,9 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 const sendEmail = require('../untils/email');
+const cloudinary = require('../untils/imageUpload');
+
+const avatarDefault = "https://res.cloudinary.com/djhqdss0k/image/upload/v1718700261/avt_default_qnussf.jpg";
 
 exports.users_signup = (req, res, next) => {
     User.findOne({ email: req.body.email })
@@ -52,6 +55,7 @@ exports.users_signup = (req, res, next) => {
                             fullname: req.body.fullname,
                             email: req.body.email,
                             password: hash,
+                            avatar: avatarDefault,
                             loginType: ['email']
                         });
                         user.save()
@@ -117,7 +121,7 @@ exports.users_login = (req, res, next) => {
 }
 
 exports.facebook_login = (req, res, next) => {
-    const { email, name } = req.body;
+    const { email, name, avatar } = req.body;
 
     const userEmail = email || `noemail_${new mongoose.Types.ObjectId()}@facebook.com`
 
@@ -129,6 +133,7 @@ exports.facebook_login = (req, res, next) => {
                     fullname: name,
                     email: userEmail,
                     password: null,
+                    avatar: avatar,
                     loginType: ['facebook']
                 });
                 return newUser.save();
@@ -177,6 +182,7 @@ exports.google_login = (req, res, next) => {
                     fullname: name,
                     email: userEmail,
                     password: null,
+                    avatar: avatarDefault,
                     loginType: ['google']
                 })
                 return newUser.save();
@@ -248,7 +254,7 @@ exports.forgot_password = (req, res, next) => {
         })
 }
 
-exports.reset_password = async (req, res, next) => {
+exports.reset_password = (req, res, next) => {
     const { id, token } = req.params;
     const { password } = req.body;
     User.findOne({ _id: id })
@@ -295,3 +301,29 @@ exports.reset_password = async (req, res, next) => {
             })
         })
 }
+
+exports.update_avatar = async (req, res, next) => {
+    User.findOne({ _id: req.body.id })
+        .then(async (user) => {
+            if (user) {
+                const result = await cloudinary.uploader.upload(`${process.cwd()}/${req.file.path}`, {
+                    public_id: `${user._id}_avatar`
+                });
+                user.avatar = result.secure_url;
+                await user.save();
+                res.status(200).json({
+                    message: 'Update avatar successfully!'
+                });
+            } else {
+                return res.status(404).json({
+                    message: 'Not found user!'
+                });
+            }
+        })
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            });
+        });
+};
+

@@ -17,6 +17,7 @@ const userSchema = mongoose.Schema({
             return this.loginType === 'email'
         } 
     },
+    avatar: { type: 'string', required: true },
     loginType: {
         type: [String],
         enum: ['email', 'facebook', 'google'],
