@@ -8,6 +8,7 @@ const app = express();
 const userRoutes = require("./api/routes/users");
 const productRoutes = require("./api/routes/products");
 const cartRoutes = require("./api/routes/carts");
+const orderRoutes = require("./api/routes/orders");
 
 mongoose.connect(
   "mongodb+srv://duyth22it:" +
@@ -38,6 +39,7 @@ app.use((req, res, next) => {
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/carts", cartRoutes);
+app.use("/api/orders", orderRoutes);
 
 app.use((req, res, next) => {
   const error = new Error("Not found");
