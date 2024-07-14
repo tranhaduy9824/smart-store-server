@@ -9,6 +9,8 @@ const userRoutes = require("./api/routes/users");
 const productRoutes = require("./api/routes/products");
 const cartRoutes = require("./api/routes/carts");
 const orderRoutes = require("./api/routes/orders");
+const wishlistRoutes = require("./api/routes/wishlist");
+const reviewRoutes = require("./api/routes/review");
 
 mongoose.connect(
   "mongodb+srv://duyth22it:" +
@@ -40,6 +42,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/carts", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/review", reviewRoutes);
 
 app.use((req, res, next) => {
   const error = new Error("Not found");
