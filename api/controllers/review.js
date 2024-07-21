@@ -4,7 +4,8 @@ const Review = require("../models/review");
 
 exports.review_add = async (req, res, next) => {
   try {
-    const { productId, userId, rating, comment } = req.body;
+    const { userId } = req.userData;
+    const { productId, rating, comment } = req.body;
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -63,10 +64,11 @@ exports.review_add = async (req, res, next) => {
   }
 };
 
-exports.review_get_product = async (req, res, next) => {
+exports.review_get_by_product = async (req, res, next) => {
   try {
     const { productId } = req.params;
     const reviews = await Review.find({ productId }).populate(["items.userId"]);
+
     res.status(200).json({
       message: "Reviews get successfully",
       reviews: reviews,
@@ -77,10 +79,37 @@ exports.review_get_product = async (req, res, next) => {
   }
 };
 
+exports.review_get_by_user = async (req, res, next) => {
+  try {
+    const { userId } = req.userData;
+    const { productId } = req.params;
+
+    const reviews = await Review.findOne({
+      productId,
+      "items.userId": userId,
+    }).populate("items.userId");
+
+    const review = reviews.items.filter(item => item.userId._id.toString() === userId)[0];
+
+    if (!review) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    res.status(200).json({
+      message: "Review get successfully",
+      review: { productId: reviews.productId, review},
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.review_update = async (req, res, next) => {
   try {
     const { reviewId } = req.params;
-    const { userId, rating, comment } = req.body;
+    const { rating, comment } = req.body;
+    const { userId } = req.userData;
 
     const review = await Review.findById(reviewId);
     if (!review) {
@@ -115,7 +144,7 @@ exports.review_update = async (req, res, next) => {
 exports.review_delete = async (req, res, next) => {
   try {
     const { reviewId } = req.params;
-    const { userId } = req.body;
+    const { userId } = req.userData;
 
     const review = await Review.findById(reviewId);
     if (!review) {

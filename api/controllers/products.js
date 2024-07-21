@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const Product = require("../models/product");
-const path = require("path");
 const cloudinary = require("../untils/imageUpload");
 const shortid = require("shortid");
 const fs = require("fs");
@@ -52,24 +51,14 @@ exports.products_create = async (req, res, next) => {
         photos: photoUrls,
         video: videoUrl,
       },
+      shop: req.shop._id,
     });
 
     const savedProduct = await product.save();
 
     res.status(201).json({
       message: "Created product successfully",
-      createdProduct: {
-        _id: savedProduct._id,
-        name: savedProduct.name,
-        des: savedProduct.des,
-        price: savedProduct.price,
-        sale: savedProduct.sale,
-        rating: savedProduct.rating,
-        files: {
-          photos: savedProduct.files.photos,
-          video: savedProduct.files.video,
-        },
-      },
+      createdProduct: savedProduct,
     });
   } catch (err) {
     console.error(err);
@@ -101,6 +90,7 @@ exports.products_create = async (req, res, next) => {
 
 exports.products_get_all = (req, res, next) => {
   Product.find()
+    .populate("shop")
     .exec()
     .then((response) => {
       res.status(200).json({
@@ -121,6 +111,7 @@ exports.products_get_all = (req, res, next) => {
 
 exports.products_get_one = (req, res, next) => {
   Product.find({ _id: req.params.id })
+    .populate("shop")
     .exec()
     .then((response) => {
       res.status(200).json({
@@ -141,6 +132,10 @@ exports.products_delete = (req, res, next) => {
     .then((product) => {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
+      }
+
+      if (req.shop && product.shop.toString() !== req.shop._id.toString()) {
+        return res.status(403).json({ message: "Forbidden" });
       }
 
       const deletePhotoPromises =
@@ -226,6 +221,10 @@ exports.products_update = async (req, res, next) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    if (req.shop && product.shop.toString() !== req.shop._id.toString()) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     const updateData = { ...req.body };
 
     if (req.files.photos) {
@@ -267,7 +266,7 @@ exports.products_update = async (req, res, next) => {
           throw new Error("Invalid image file for photos");
         }
       });
-      updateData['files.photos'] = await Promise.all(photoUploadPromises);
+      updateData["files.photos"] = await Promise.all(photoUploadPromises);
     }
 
     if (req.files.video && req.files.video.length > 0) {
@@ -287,7 +286,7 @@ exports.products_update = async (req, res, next) => {
         }
       );
       await fs.promises.unlink(req.files.video[0].path);
-      updateData['files.video'] = videoResult.secure_url;
+      updateData["files.video"] = videoResult.secure_url;
     }
 
     await Product.updateOne(

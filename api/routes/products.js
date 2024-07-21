@@ -5,6 +5,9 @@ const path = require("path");
 const shortid = require("shortid");
 
 const ProductsController = require("../controllers/products");
+const checkAuth = require("../middleware/check-auth");
+const isShop = require("../middleware/is-shop");
+const isAdmin = require("../middleware/is-admin");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -46,6 +49,8 @@ const upload = multer({
 
 router.post(
   "/",
+  checkAuth,
+  isShop,
   upload.fields([
     { name: "photos", maxCount: 10 },
     { name: "video", maxCount: 1 },
@@ -54,9 +59,28 @@ router.post(
 );
 router.get("/", ProductsController.products_get_all);
 router.get("/:id", ProductsController.products_get_one);
-router.delete("/:id", ProductsController.products_delete);
+router.delete(
+  "/:id",
+  checkAuth,
+  (req, res, next) => {
+    if (req.userData.role === 'admin') {
+      next();
+    } else if (req.userData.role === 'user') {
+      isShop(req, res, next);
+    }
+  },
+  ProductsController.products_delete
+);
 router.patch(
   "/:id",
+  checkAuth,
+  (req, res, next) => {
+    if (req.userData.role === 'admin') {
+      next();
+    } else if (req.userData.role === 'user') {
+      isShop(req, res, next);
+    }
+  },
   upload.fields([
     { name: "photos", maxCount: 10 },
     { name: "video", maxCount: 1 },

@@ -18,6 +18,21 @@ const productSchema = mongoose.Schema(
         required: false,
       },
     },
+    shop: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shop",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["not approved", "approved"],
+      default: "not approved",
+    },
+    inStock: {
+      type: Boolean,
+      required: true,
+      default: true,
+    },
   },
   {
     timestamps: true,

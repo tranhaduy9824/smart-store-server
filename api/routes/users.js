@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 
 const UsersController = require('../controllers/users');
+const checkAuth = require('../middleware/check-auth')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -35,6 +36,6 @@ router.post("/facebook-login", UsersController.facebook_login);
 router.post("/google-login", UsersController.google_login);
 router.post("/forgot-password", UsersController.forgot_password);
 router.post("/reset-password/:id/:token", UsersController.reset_password);
-router.post("/update-avatar", upload.single('avatar'), UsersController.update_avatar)
+router.post("/update-avatar", upload.single('avatar'), checkAuth, UsersController.update_avatar)
 
 module.exports = router;

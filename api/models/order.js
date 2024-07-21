@@ -24,12 +24,22 @@ const orderSchema = new mongoose.Schema(
           required: true,
           min: 0,
         },
+        status: {
+          type: String,
+          enum: ["wait_confirm", "delivering", "done", "cancelled"],
+          default: "wait_confirm",
+        },
       },
     ],
     totalPrice: { type: Number, required: true, default: 0 },
-    status: {
+    allStatus: {
       type: String,
-      enum: ["wait_confirm", "delivering", "done", "cancelled"],
+      enum: [
+        "wait_confirm",
+        "delivering",
+        "done",
+        "cancelled",
+      ],
       default: "wait_confirm",
     },
     paymentMethod: {

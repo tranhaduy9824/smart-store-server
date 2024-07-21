@@ -3,7 +3,8 @@ const Product = require("../models/product");
 
 exports.carts_add = async (req, res, next) => {
   try {
-    const { userId, productId, quantity } = req.body;
+    const userId = req.userData.userId
+    const { productId, quantity } = req.body;
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -60,8 +61,7 @@ exports.carts_add = async (req, res, next) => {
 
 exports.carts_get = async (req, res, next) => {
   try {
-    const userId = req.params.id;
-    console.log(userId);
+    const userId = req.userData.userId;
     const cart = await Cart.findOne({ userId }).populate("items.productId");
     res.status(200).json({
       message: "Cart found",
@@ -77,7 +77,8 @@ exports.carts_get = async (req, res, next) => {
 
 exports.carts_update = async (req, res, next) => {
   try {
-    const { userId, productId, quantity } = req.body;
+    const userId = req.userData.userId
+    const { productId, quantity } = req.body;
 
     const cart = await Cart.findOne({ userId });
     if (!cart) {
@@ -114,7 +115,8 @@ exports.carts_update = async (req, res, next) => {
 
 exports.carts_remove = async (req, res, next) => {
   try {
-    const { userId, productId } = req.body;
+    const userId = req.userData.userId
+    const { productId } = req.body;
 
     const cart = await Cart.findOne({ userId });
     if (!cart) {

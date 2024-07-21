@@ -2,7 +2,8 @@ const Wishlist = require("../models/wishlist");
 
 exports.wishlist_add = async (req, res, next) => {
   try {
-    const { userId, productId } = req.body;
+    const userId = req.userData.userId;
+    const { productId } = req.body;
 
     let wishlist = await Wishlist.findOne({ userId });
     if (!wishlist) {
@@ -26,8 +27,7 @@ exports.wishlist_add = async (req, res, next) => {
 
 exports.wishlist_get_user = async (req, res, next) => {
   try {
-    const { userId } = req.params;
-    console.log(userId);
+    const { userId } = req.userData;
     const wishlist = await Wishlist.findOne({ userId }).populate("products");
 
     res.status(200).json({
@@ -42,7 +42,8 @@ exports.wishlist_get_user = async (req, res, next) => {
 
 exports.wishlist_remove = async (req, res, next) => {
   try {
-    const { userId, productId } = req.body;
+    const { userId } = req.userData;
+    const { productId } = req.body;
 
     const wishlist = await Wishlist.findOne({ userId });
     if (wishlist) {
