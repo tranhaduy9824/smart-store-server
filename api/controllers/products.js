@@ -46,11 +46,13 @@ exports.products_create = async (req, res, next) => {
       des: req.body.des,
       price: req.body.price,
       sale: req.body.sale,
-      rating: req.body.rating,
       files: {
         photos: photoUrls,
         video: videoUrl,
       },
+      category: req.body.category,
+      categorySub: req.body.categorySub,
+      shippingCost: req.body.shippingCost,
       shop: req.shop._id,
     });
 
@@ -107,6 +109,31 @@ exports.products_get_all = (req, res, next) => {
         error: err,
       });
     });
+};
+
+exports.products_get_by_category = async (req, res, next) => {
+  try {
+    const { category, categorySub } = req.query;
+    let query = { category };
+
+    if (categorySub) {
+      query.categorySub = categorySub;
+    }
+
+    const products = await Product.find(query);
+    res.status(200).json({
+      message: "Products found",
+      data: {
+        count: products.length,
+        products: products,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error,
+    });
+  }
 };
 
 exports.products_get_one = (req, res, next) => {

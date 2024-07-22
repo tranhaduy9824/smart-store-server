@@ -6,7 +6,7 @@ const productSchema = mongoose.Schema(
     name: { type: "string", required: true, trim: true },
     des: { type: "string", required: true, trim: true },
     price: { type: "number", required: true },
-    sale: { type: "number", required: true },
+    sale: { type: "number", required: true, default: 0 },
     rating: { type: "number", required: true, default: 5 },
     files: {
       photos: {
@@ -17,6 +17,13 @@ const productSchema = mongoose.Schema(
         type: String,
         required: false,
       },
+    },
+    category: { type: "string", required: true },
+    categorySub: { type: "string", required: true },
+    shippingCost: {
+      type: Number,
+      required: true,
+      default: 0,
     },
     shop: {
       type: mongoose.Schema.Types.ObjectId,

@@ -27,6 +27,7 @@ const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = [
     "image/jpeg",
     "image/png",
+    "image/webp",
     "video/mp4",
     "video/quicktime",
   ];
@@ -41,7 +42,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 20 * 1024 * 1024,
     files: 11,
   },
   fileFilter: fileFilter,
@@ -58,6 +59,7 @@ router.post(
   ProductsController.products_create
 );
 router.get("/", ProductsController.products_get_all);
+router.get("/category/", ProductsController.products_get_by_category);
 router.get("/:id", ProductsController.products_get_one);
 router.delete(
   "/:id",
