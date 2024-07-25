@@ -113,6 +113,7 @@ exports.users_login = (req, res, next) => {
           return res.status(200).json({
             message: "Auth successful",
             token: token,
+            user: user,
           });
         }
         return res.status(401).json({
@@ -169,6 +170,7 @@ exports.facebook_login = (req, res, next) => {
       res.status(200).json({
         message: "Auth successful",
         token: token,
+        user: savedUser,
       });
     })
     .catch((err) => {
@@ -220,6 +222,7 @@ exports.google_login = (req, res, next) => {
       res.status(200).json({
         message: "Auth successful",
         token: token,
+        user: savedUser,
       });
     })
     .catch((err) => {
@@ -319,33 +322,44 @@ exports.reset_password = (req, res, next) => {
     });
 };
 
-exports.update_avatar = async (req, res, next) => {
-  User.findOne({ _id: req.userData.userId })
-    .then(async (user) => {
-      if (user) {
-        const result = await cloudinary.uploader.upload(
-          `${process.cwd()}/${req.file.path}`,
-          {
-            public_id: `${user._id}_avatar`,
-          }
-        );
-        user.avatar = result.secure_url;
-        await user.save();
-
-        await fs.promises.unlink(req.file.path);
-
-        res.status(200).json({
-          message: "Update avatar successfully!",
-        });
-      } else {
-        return res.status(404).json({
-          message: "Not found user!",
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).json({
-        error: err,
+exports.update_user = async (req, res, next) => {
+  try {
+    const user = await User.findOne({ _id: req.userData.userId });
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
       });
+    }
+
+    if (req.body.fullname) user.fullname = req.body.fullname;
+    if (req.body.email) user.email = req.body.email;
+    if (req.body.phone) user.phone = req.body.phone;
+
+    if (req.body.password) {
+      user.password = await bcrypt.hash(req.body.password, 10);
+    }
+
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(
+        `${process.cwd()}/${req.file.path}`,
+        {
+          public_id: `${user._id}_avatar`,
+        }
+      );
+      user.avatar = result.secure_url;
+      await fs.promises.unlink(req.file.path);
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Update successful",
+      user: user,
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: err.message,
+    });
+  }
 };
