@@ -154,6 +154,74 @@ exports.products_get_one = (req, res, next) => {
     });
 };
 
+exports.products_search = async (req, res, next) => {
+  try {
+    const { name = "", category, categorySub } = req.query;
+    let query = {};
+
+    if (name) {
+      query.name = { $regex: name, $options: "i" };
+    }
+    if (category) {
+      query.category = category;
+    }
+    if (categorySub) {
+      query.categorySub = categorySub;
+    }
+
+    const products = await Product.find(query);
+    res.status(200).json({
+      products: products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+exports.products_get_new = async (req, res, next) => {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 }).limit(10);
+
+    res.status(200).json({
+      products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+exports.products_get_sale = async (req, res, next) => {
+  try {
+    const products = await Product.find().sort({ sale: -1 }).limit(4);
+
+    res.status(200).json({
+      products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+exports.products_get_recommend = async (req, res, next) => {
+  try {
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+}
+
 exports.products_delete = (req, res, next) => {
   Product.findById(req.params.id)
     .then((product) => {

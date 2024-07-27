@@ -60,6 +60,9 @@ router.post(
 );
 router.get("/", ProductsController.products_get_all);
 router.get("/category/", ProductsController.products_get_by_category);
+router.get("/search", ProductsController.products_search);
+router.get("/new", ProductsController.products_get_new);
+router.get("/sale", ProductsController.products_get_sale);
 router.get("/:id", ProductsController.products_get_one);
 router.delete(
   "/:id",

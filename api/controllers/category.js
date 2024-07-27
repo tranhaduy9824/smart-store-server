@@ -21,7 +21,7 @@ exports.category_create = async (req, res, next) => {
 
 exports.category_get_all = async (req, res, next) => {
   try {
-    const categories = await Category.find();
+    const categories = await Category.find().select("name categorySub");
 
     res.status(200).json({
       message: "Category get all successfully",
@@ -37,7 +37,7 @@ exports.category_get_all = async (req, res, next) => {
 
 exports.category_get_one = async (req, res, next) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const category = await Category.findById(req.params.id).select("name categorySub");
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
