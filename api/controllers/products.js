@@ -1,9 +1,11 @@
 const mongoose = require("mongoose");
 const Product = require("../models/product");
+const Order = require("../models/order");
 const cloudinary = require("../untils/imageUpload");
 const shortid = require("shortid");
 const fs = require("fs");
 const { getPublicIdFromUrl } = require("../untils/getPublicIdFromUrl");
+const { recommendProducts } = require("../untils/recommendProducts");
 
 exports.products_create = async (req, res, next) => {
   try {
@@ -90,25 +92,83 @@ exports.products_create = async (req, res, next) => {
   }
 };
 
-exports.products_get_all = (req, res, next) => {
-  Product.find()
-    .populate("shop")
-    .exec()
-    .then((response) => {
-      res.status(200).json({
-        message: "Products found",
-        data: {
-          count: response.length,
-          products: response,
-        },
-      });
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).json({
-        error: err,
-      });
+exports.products_get_all = async (req, res, next) => {
+  try {
+    const { category, categorySub, priceRange, sort, sale } = req.query;
+    let query = {};
+
+    if (category) {
+      query.category = category;
+    }
+    if (categorySub) {
+      query.categorySub = categorySub;
+    }
+
+    if (priceRange) {
+      query.price = {};
+      if (priceRange.from !== undefined) query.price.$gte = priceRange.from;
+      if (priceRange.to !== undefined) query.price.$lte = priceRange.to;
+    }
+
+    if (sale) {
+      query.sale = { $gt: 0 };
+    }
+
+    let sortOption = {};
+    switch (parseInt(sort)) {
+      case 1:
+        const purchaseCount = await Order.aggregate([
+          { $unwind: "$items" },
+          {
+            $group: {
+              _id: "$items.productId",
+              purchaseCount: { $sum: "$items.quantity" },
+            },
+          },
+          { $sort: { purchaseCount: -1 } },
+        ]);
+        const productOrder = purchaseCount.map((item) => item._id.toString());
+        query._id = { $in: productOrder };
+        sortOption = { purchaseCount: -1 };
+        break;
+      case 2:
+        sortOption = { rating: -1 };
+        break;
+      case 3:
+        sortOption = { createdAt: -1 };
+        break;
+      case 4:
+        sortOption = { price: 1 };
+        break;
+      case 5:
+        sortOption = { price: -1 };
+        break;
+      default:
+        sortOption = { createdAt: -1 };
+        break;
+    }
+
+    if (sale) {
+      sortOption = { sale: -1 };
+    }
+
+    const products = await Product.find(query)
+      .populate("shop")
+      .sort(sortOption);
+
+    res.status(200).json({
+      message: "Products found",
+      data: {
+        count: products.length,
+        products: products,
+      },
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error,
+    });
+  }
 };
 
 exports.products_get_by_category = async (req, res, next) => {
@@ -137,7 +197,7 @@ exports.products_get_by_category = async (req, res, next) => {
 };
 
 exports.products_get_one = (req, res, next) => {
-  Product.find({ _id: req.params.id })
+  Product.findOne({ _id: req.params.id })
     .populate("shop")
     .exec()
     .then((response) => {
@@ -152,6 +212,22 @@ exports.products_get_one = (req, res, next) => {
         error: err,
       });
     });
+};
+
+exports.products_get_by_shop = async (req, res, next) => {
+  try {
+    const products = await Product.find({ shop: req.params.shopId });
+
+    res.status(200).json({
+      message: "Products found",
+      products: products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error,
+    });
+  }
 };
 
 exports.products_search = async (req, res, next) => {
@@ -213,14 +289,22 @@ exports.products_get_sale = async (req, res, next) => {
 
 exports.products_get_recommend = async (req, res, next) => {
   try {
-    
+    const userId = req.userData ? req.userData : null;
+    const recommendedProductIds = await recommendProducts(userId);
+
+    const recommendedProducts = await Product.find({
+      _id: { $in: recommendedProductIds },
+    });
+    res.status(200).json({
+      products: recommendedProducts,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       error: error.message,
     });
   }
-}
+};
 
 exports.products_delete = (req, res, next) => {
   Product.findById(req.params.id)

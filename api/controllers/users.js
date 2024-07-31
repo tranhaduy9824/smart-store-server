@@ -245,7 +245,7 @@ exports.forgot_password = (req, res, next) => {
           {
             email: user.email,
             id: user._id,
-            role: savedUser.role,
+            role: user.role,
           },
           process.env.JWT_KEY,
           {
@@ -360,6 +360,21 @@ exports.update_user = async (req, res, next) => {
     console.error(err);
     res.status(500).json({
       error: err.message,
+    });
+  }
+};
+
+exports.users_get_one = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error.message,
     });
   }
 };

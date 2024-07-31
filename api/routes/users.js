@@ -37,5 +37,6 @@ router.post("/google-login", UsersController.google_login);
 router.post("/forgot-password", UsersController.forgot_password);
 router.post("/reset-password/:id/:token", UsersController.reset_password);
 router.post("/update-user", upload.single('avatar'), checkAuth, UsersController.update_user)
+router.get("/:id", UsersController.users_get_one)
 
 module.exports = router;

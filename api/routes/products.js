@@ -7,7 +7,6 @@ const shortid = require("shortid");
 const ProductsController = require("../controllers/products");
 const checkAuth = require("../middleware/check-auth");
 const isShop = require("../middleware/is-shop");
-const isAdmin = require("../middleware/is-admin");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -63,14 +62,26 @@ router.get("/category/", ProductsController.products_get_by_category);
 router.get("/search", ProductsController.products_search);
 router.get("/new", ProductsController.products_get_new);
 router.get("/sale", ProductsController.products_get_sale);
+router.get(
+  "/recommend",
+  (req, res, next) => {
+    if (req.headers.authorization) {
+      checkAuth(req, res, next);
+    } else {
+      next();
+    }
+  },
+  ProductsController.products_get_recommend
+);
 router.get("/:id", ProductsController.products_get_one);
+router.get("/shop/:shopId", ProductsController.products_get_by_shop);
 router.delete(
   "/:id",
   checkAuth,
   (req, res, next) => {
-    if (req.userData.role === 'admin') {
+    if (req.userData.role === "admin") {
       next();
-    } else if (req.userData.role === 'user') {
+    } else if (req.userData.role === "user") {
       isShop(req, res, next);
     }
   },
@@ -80,9 +91,9 @@ router.patch(
   "/:id",
   checkAuth,
   (req, res, next) => {
-    if (req.userData.role === 'admin') {
+    if (req.userData.role === "admin") {
       next();
-    } else if (req.userData.role === 'user') {
+    } else if (req.userData.role === "user") {
       isShop(req, res, next);
     }
   },

@@ -1,6 +1,7 @@
 const Product = require("../models/product");
 const User = require("../models/user");
 const Review = require("../models/review");
+const Order = require("../models/order");
 
 exports.review_add = async (req, res, next) => {
   try {
@@ -18,6 +19,18 @@ exports.review_add = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         message: "User not found",
+      });
+    }
+
+    const order = await Order.findOne({
+      userId,
+      "items.productId": productId,
+      "items.status": { $ne: "cancelled" },
+    });
+
+    if (!order) {
+      return res.status(403).json({
+        message: "User must purchase the product before reviewing",
       });
     }
 
@@ -67,7 +80,7 @@ exports.review_add = async (req, res, next) => {
 exports.review_get_by_product = async (req, res, next) => {
   try {
     const { productId } = req.params;
-    const reviews = await Review.find({ productId }).populate(["items.userId"]);
+    const reviews = await Review.findOne({ productId }).populate(["items.userId"]);
 
     res.status(200).json({
       message: "Reviews get successfully",
@@ -89,7 +102,9 @@ exports.review_get_by_user = async (req, res, next) => {
       "items.userId": userId,
     }).populate("items.userId");
 
-    const review = reviews.items.filter(item => item.userId._id.toString() === userId)[0];
+    const review = reviews.items.filter(
+      (item) => item.userId._id.toString() === userId
+    )[0];
 
     if (!review) {
       return res.status(404).json({ message: "Review not found" });
@@ -97,7 +112,7 @@ exports.review_get_by_user = async (req, res, next) => {
 
     res.status(200).json({
       message: "Review get successfully",
-      review: { productId: reviews.productId, review},
+      review: { productId: reviews.productId, review },
     });
   } catch (error) {
     console.log(error);
