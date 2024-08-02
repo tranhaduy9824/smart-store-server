@@ -32,6 +32,15 @@ const userSchema = mongoose.Schema({
       return this.loginType === "email";
     },
   },
+  address: [
+    {
+      fullname: { type: String, required: true },
+      phone: { type: String, required: true },
+      address: { type: String, required: true },
+      specificAddress: { type: String, required: true },
+      isDefault: { type: Boolean, required: false },
+    },
+  ],
   avatar: { type: "string", required: true },
   role: {
     type: String,

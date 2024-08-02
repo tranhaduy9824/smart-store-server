@@ -322,45 +322,64 @@ exports.reset_password = (req, res, next) => {
     });
 };
 
-exports.update_user = async (req, res, next) => {
+exports.update_user = async (req, res) => {
   try {
-    const user = await User.findOne({ _id: req.userData.userId });
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
+    const user = await User.findById(req.userData.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (req.body.fullname) user.fullname = req.body.fullname;
-    if (req.body.email) user.email = req.body.email;
-    if (req.body.phone) user.phone = req.body.phone;
+    const { fullname, email, phone, password, address, addressId, setDefault } =
+      req.body;
 
-    if (req.body.password) {
-      user.password = await bcrypt.hash(req.body.password, 10);
+    if (fullname) user.fullname = fullname;
+    if (email) user.email = email;
+    if (phone) user.phone = phone;
+    if (password) user.password = await bcrypt.hash(password, 10);
+
+    if (setDefault && addressId) {
+      user.address = user.address.map((addr) =>
+        addr._id.toString() === addressId
+          ? { ...addr, isDefault: true }
+          : { ...addr, isDefault: false }
+      );
+    } else if (addressId && !address) {
+      user.address = user.address.filter(
+        (addr) => addr._id.toString() !== addressId
+      );
+    } else if (addressId && address) {
+      user.address = user.address.map((addr) =>
+        addr._id.toString() === addressId ? { ...addr, ...address } : addr
+      );
+
+      if (address.isDefault) {
+        user.address = user.address.map((addr) =>
+          addr._id.toString() === addressId
+            ? { ...addr, isDefault: true }
+            : { ...addr, isDefault: false }
+        );
+      }
+    } else if (address) {
+      if (address.isDefault) {
+        user.address = user.address.map((addr) => ({
+          ...addr,
+          isDefault: false,
+        }));
+      }
+      user.address.push({ ...address, isDefault: address.isDefault || false });
     }
 
     if (req.file) {
-      const result = await cloudinary.uploader.upload(
-        `${process.cwd()}/${req.file.path}`,
-        {
-          public_id: `${user._id}_avatar`,
-        }
-      );
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        public_id: `${user._id}_avatar`,
+      });
       user.avatar = result.secure_url;
       await fs.promises.unlink(req.file.path);
     }
 
     await user.save();
-
-    res.status(200).json({
-      message: "Update successful",
-      user: user,
-    });
+    res.status(200).json({ message: "Update successful", user });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      error: err.message,
-    });
+    res.status(500).json({ error: err.message });
   }
 };
 
