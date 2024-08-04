@@ -12,18 +12,26 @@ exports.orders_create = async (req, res, next) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    let shippingCost = 0;
     let totalPrice = 0;
+
     for (const item of items) {
       const product = await Product.findById(item.productId);
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
       }
+
+      const itemShippingCost = product.shippingCost || 0;
+      shippingCost = Math.max(shippingCost, itemShippingCost);
       totalPrice += item.price;
     }
+
+    totalPrice += shippingCost;
 
     const order = new Order({
       userId,
       items,
+      shippingCost,
       totalPrice,
       paymentMethod,
       shippingAddress,
@@ -34,6 +42,7 @@ exports.orders_create = async (req, res, next) => {
       order: order,
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: error.message });
   }
 };

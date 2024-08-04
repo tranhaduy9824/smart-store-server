@@ -31,15 +31,15 @@ const orderSchema = new mongoose.Schema(
         },
       },
     ],
+    shippingCost: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
     totalPrice: { type: Number, required: true, default: 0 },
     allStatus: {
       type: String,
-      enum: [
-        "wait_confirm",
-        "delivering",
-        "done",
-        "cancelled",
-      ],
+      enum: ["wait_confirm", "delivering", "done", "cancelled"],
       default: "wait_confirm",
     },
     paymentMethod: {

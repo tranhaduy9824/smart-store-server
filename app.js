@@ -2,7 +2,10 @@ const express = require("express");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const cors = require('cors');
 const app = express();
+
+app.use(cors());
 
 // Import routes
 const userRoutes = require("./api/routes/users");
@@ -13,6 +16,7 @@ const wishlistRoutes = require("./api/routes/wishlist");
 const reviewRoutes = require("./api/routes/review");
 const categoryRoutes = require("./api/routes/category");
 const shopRoutes = require("./api/routes/shops");
+const paymentRoutes = require("./api/routes/payment");
 
 mongoose.connect(
   "mongodb+srv://duyth22it:" +
@@ -47,7 +51,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/category", categoryRoutes);
-app.use("/api/shop", shopRoutes)
+app.use("/api/shop", shopRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.use((req, res, next) => {
   const error = new Error("Not found");

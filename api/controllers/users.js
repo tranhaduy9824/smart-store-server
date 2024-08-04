@@ -358,13 +358,20 @@ exports.update_user = async (req, res) => {
         );
       }
     } else if (address) {
-      if (address.isDefault) {
-        user.address = user.address.map((addr) => ({
-          ...addr,
-          isDefault: false,
-        }));
+      if (!user.address || user.address.length === 0) {
+        user.address.push({ ...address, isDefault: true });
+      } else {
+        if (address.isDefault) {
+          user.address = user.address.map((addr) => ({
+            ...addr,
+            isDefault: false,
+          }));
+        }
+        user.address.push({
+          ...address,
+          isDefault: address.isDefault || false,
+        });
       }
-      user.address.push({ ...address, isDefault: address.isDefault || false });
     }
 
     if (req.file) {
