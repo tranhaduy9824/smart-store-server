@@ -74,6 +74,7 @@ exports.orders_get_by_id = async (req, res, next) => {
 exports.orders_get_by_user = async (req, res, next) => {
   try {
     const orders = await Order.find({ userId: req.userData.userId })
+      .sort({ updatedAt: -1 })
       .populate("userId")
       .populate("items.productId");
 

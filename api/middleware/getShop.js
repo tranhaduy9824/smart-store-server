@@ -5,10 +5,6 @@ module.exports = async (req, res, next) => {
     const userId = req.userData.userId;
     const shop = await Shop.findOne({ owner: userId });
 
-    if (!shop) {
-      return res.status(403).json({ message: "You don't have a shop" });
-    }
-
     req.shop = shop;
     next();
   } catch (error) {

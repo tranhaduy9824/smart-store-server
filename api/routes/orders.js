@@ -3,7 +3,7 @@ const router = express.Router();
 
 const OrdersController = require("../controllers/orders");
 const checkAuth = require("../middleware/check-auth");
-const isShop = require("../middleware/is-shop");
+const getShop = require("../middleware/getShop");
 
 router.post("/", checkAuth, OrdersController.orders_create);
 router.get("/:id", checkAuth, OrdersController.orders_get_by_id);
@@ -15,7 +15,7 @@ router.patch(
     if (req.userData.role === "admin") {
       next();
     } else if (req.userData.role === "user") {
-      isShop(req, res, next);
+      getShop(req, res, next);
     } else {
       next();
     }
