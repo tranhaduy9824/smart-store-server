@@ -289,12 +289,35 @@ exports.products_get_sale = async (req, res, next) => {
 
 exports.products_get_recommend = async (req, res, next) => {
   try {
-    const userId = req.userData ? req.userData : null;
+    const userData = req.userData || {};
+    const { userId } = userData;
+
+    if (!userId) {
+      const popularProducts = await Product.find({})
+        .sort({ rating: -1 })
+        .limit(10);
+      return res.status(200).json({
+        message: "Popular products",
+        products: popularProducts,
+      });
+    }
+
     const recommendedProductIds = await recommendProducts(userId);
+
+    if (recommendedProductIds.length === 0) {
+      const popularProducts = await Product.find({})
+        .sort({ rating: -1 })
+        .limit(10);
+      return res.status(200).json({
+        message: "Popular products",
+        products: popularProducts,
+      });
+    }
 
     const recommendedProducts = await Product.find({
       _id: { $in: recommendedProductIds },
     });
+
     res.status(200).json({
       products: recommendedProducts,
     });
