@@ -94,7 +94,14 @@ exports.products_create = async (req, res, next) => {
 
 exports.products_get_all = async (req, res, next) => {
   try {
-    const { category, categorySub, priceRange, sort, sale } = req.query;
+    const {
+      category,
+      categorySub,
+      priceRange,
+      sort,
+      sale,
+      status = "approved",
+    } = req.query;
     let query = {};
 
     if (category) {
@@ -152,6 +159,10 @@ exports.products_get_all = async (req, res, next) => {
       sortOption = { sale: -1 };
     }
 
+    if (status) {
+      query.status = status;
+    }
+
     const products = await Product.find(query)
       .populate("shop")
       .sort(sortOption);
@@ -180,6 +191,8 @@ exports.products_get_by_category = async (req, res, next) => {
       query.categorySub = categorySub;
     }
 
+    query.status = "approved";
+
     const products = await Product.find(query);
     res.status(200).json({
       message: "Products found",
@@ -197,7 +210,7 @@ exports.products_get_by_category = async (req, res, next) => {
 };
 
 exports.products_get_one = (req, res, next) => {
-  Product.findOne({ _id: req.params.id })
+  Product.findOne({ _id: req.params.id, status: "approved" })
     .populate("shop")
     .exec()
     .then((response) => {
@@ -216,7 +229,10 @@ exports.products_get_one = (req, res, next) => {
 
 exports.products_get_by_shop = async (req, res, next) => {
   try {
-    const products = await Product.find({ shop: req.params.shopId });
+    const products = await Product.find({
+      shop: req.params.shopId,
+      status: "approved",
+    });
 
     res.status(200).json({
       message: "Products found",
@@ -245,6 +261,8 @@ exports.products_search = async (req, res, next) => {
       query.categorySub = categorySub;
     }
 
+    query.status = "approved";
+
     const products = await Product.find(query);
     res.status(200).json({
       products: products,
@@ -259,7 +277,9 @@ exports.products_search = async (req, res, next) => {
 
 exports.products_get_new = async (req, res, next) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 }).limit(10);
+    const products = await Product.find({ status: "approved" })
+      .sort({ createdAt: -1 })
+      .limit(10);
 
     res.status(200).json({
       products,
@@ -274,7 +294,9 @@ exports.products_get_new = async (req, res, next) => {
 
 exports.products_get_sale = async (req, res, next) => {
   try {
-    const products = await Product.find().sort({ sale: -1 }).limit(4);
+    const products = await Product.find({ status: "approved" })
+      .sort({ sale: -1 })
+      .limit(4);
 
     res.status(200).json({
       products,
@@ -293,7 +315,7 @@ exports.products_get_recommend = async (req, res, next) => {
     const { userId } = userData;
 
     if (!userId) {
-      const popularProducts = await Product.find({})
+      const popularProducts = await Product.find({ status: "approved" })
         .sort({ rating: -1 })
         .limit(10);
       return res.status(200).json({
@@ -305,7 +327,7 @@ exports.products_get_recommend = async (req, res, next) => {
     const recommendedProductIds = await recommendProducts(userId);
 
     if (recommendedProductIds.length === 0) {
-      const popularProducts = await Product.find({})
+      const popularProducts = await Product.find({ status: "approved" })
         .sort({ rating: -1 })
         .limit(10);
       return res.status(200).json({
@@ -316,6 +338,7 @@ exports.products_get_recommend = async (req, res, next) => {
 
     const recommendedProducts = await Product.find({
       _id: { $in: recommendedProductIds },
+      status: "approved",
     });
 
     res.status(200).json({
