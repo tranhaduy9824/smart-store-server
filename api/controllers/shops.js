@@ -59,14 +59,27 @@ exports.shop_get_one = async (req, res) => {
   }
 };
 
+exports.get_my_shop = async (req, res) => {
+  try {
+    const userId = req.userData.userId;
+    const shop = await Shop.findOne({ owner: userId });
+
+    res.status(200).json({
+      message: "Get shop successfully",
+      shop: shop,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+}
+
 exports.shop_update = async (req, res) => {
   try {
     const { name, description, phone, email, address, socialMediaUrls } =
       req.body;
     const { id } = req.params;
     const { userId } = req.userData;
-
-    console.log(id, userId);
 
     const shop = await Shop.findOneAndUpdate(
       { _id: id, owner: userId },
