@@ -71,6 +71,28 @@ exports.orders_get_by_id = async (req, res, next) => {
   }
 };
 
+exports.orders_get_by_shop = async (req, res, next) => {
+  try {
+    const shopId = req.shop._id;
+
+    const orders = await Order.find({
+      "items.productId": {
+        $in: await Product.find({ shop: shopId }).select("_id"),
+      },
+    })
+      .sort({ updatedAt: -1 })
+      .populate("userId")
+      .populate("items.productId");
+
+    res.status(201).json({
+      message: "Get orders successfully",
+      orders: orders,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.orders_get_by_user = async (req, res, next) => {
   try {
     const orders = await Order.find({ userId: req.userData.userId })
@@ -89,8 +111,7 @@ exports.orders_get_by_user = async (req, res, next) => {
 
 exports.orders_update = async (req, res, next) => {
   try {
-    const { allStatus, paymentMethod, shippingAddress, productId, status } =
-      req.body;
+    const { allStatus, paymentMethod, shippingAddress, status } = req.body;
     const orderId = req.params.id;
 
     const order = await Order.findById(orderId)
@@ -101,13 +122,11 @@ exports.orders_update = async (req, res, next) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    const product = await Product.findById(productId);
-
     if (req.userData.role === "admin") {
       await order.updateOne({ $set: { allStatus } }, { new: true });
     } else if (
       req.userData.role === "user" &&
-      req.userData.userId === order.userId._id.toString()
+      req.userData.userId === order.userId?._id.toString()
     ) {
       if (allStatus === "cancelled") {
         await order.updateOne(
@@ -120,28 +139,21 @@ exports.orders_update = async (req, res, next) => {
           { new: true }
         );
       }
-    } else if (req.shop._id.toString() === product.shop._id.toString()) {
-      const updatedItems = await Promise.all(
-        order.items.map(async (item) => {
-          if (item.productId._id.toString() === productId) {
-            if (status === "delivering" || status === "cancelled") {
-              item.status = status;
-            }
-            return item;
-          }
-          return item;
-        })
-      );
+    } else if (req?.shop) {      
+      const updatedItems = order.items.map((item) => {
+        if (req.shop._id.toString() === item.productId.shop._id.toString()) {
+          item.status = status;
+        }
+        return item;
+      });
 
       const allItemsDelivering = updatedItems.every(
         (item) => item.status === "delivering"
       );
-      const allStatus = allItemsDelivering ? "delivering" : "wait_confirm";
-
-      console.log(allStatus);
+      const newAllStatus = allItemsDelivering ? "delivering" : "wait_confirm";
 
       await order.updateOne(
-        { $set: { items: updatedItems, allStatus } },
+        { $set: { items: updatedItems, allStatus: newAllStatus } },
         { new: true }
       );
     } else {
