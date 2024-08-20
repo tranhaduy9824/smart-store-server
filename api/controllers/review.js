@@ -94,6 +94,31 @@ exports.review_add = async (req, res, next) => {
   }
 };
 
+exports.review_get_by_shop = async (req, res, next) => {
+  try {
+    const shopId = req.shop._id;
+
+    const products = await Product.find({ shop: shopId }).select('_id');
+    if (!products.length) {
+      return res.status(404).json({
+        message: "No products found for this shop.",
+      });
+    }
+
+    const productIds = products.map(product => product._id);
+    const reviews = await Review.find({ productId: { $in: productIds } }).populate('productId items.userId');
+
+    res.status(200).json({
+      message: "Reviews retrieved successfully",
+      reviews: reviews,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 exports.review_get_by_product = async (req, res, next) => {
   try {
     const { productId } = req.params;

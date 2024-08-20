@@ -9,7 +9,8 @@ const { recommendProducts } = require("../untils/recommendProducts");
 
 exports.products_create = async (req, res, next) => {
   try {
-    const photoUploadPromises = req.files.photos.map(async (photo) => {
+    const photos = req.files?.photos || [];
+    const photoUploadPromises = photos.map(async (photo) => {
       try {
         const photoId = shortid.generate();
         const result = await cloudinary.uploader.upload(photo.path, {
@@ -22,19 +23,18 @@ exports.products_create = async (req, res, next) => {
         throw new Error("Invalid image file for photos");
       }
     });
+
     const photoUrls = await Promise.all(photoUploadPromises);
 
     let videoUrl;
-    if (req.files.video && req.files.video.length > 0) {
+    const video = req.files?.video;
+    if (video && video.length > 0) {
       try {
-        const videoResult = await cloudinary.uploader.upload(
-          req.files.video[0].path,
-          {
-            public_id: `${req.body.name}_video`,
-            resource_type: "video",
-          }
-        );
-        await fs.promises.unlink(req.files.video[0].path);
+        const videoResult = await cloudinary.uploader.upload(video[0].path, {
+          public_id: `${req.body.name}_video`,
+          resource_type: "video",
+        });
+        await fs.promises.unlink(video[0].path);
         videoUrl = videoResult.secure_url;
       } catch (err) {
         console.error(err);
@@ -233,6 +233,24 @@ exports.products_get_by_shop = async (req, res, next) => {
       shop: req.params.shopId,
       status: "approved",
     });
+
+    res.status(200).json({
+      message: "Products found",
+      products: products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error,
+    });
+  }
+};
+
+exports.products_get_my_shop = async (req, res, next) => {
+  try {
+    const products = await Product.find({
+      shop: req.shop?._id,
+    }).sort({ updatedAt: -1 });
 
     res.status(200).json({
       message: "Products found",
@@ -452,27 +470,9 @@ exports.products_update = async (req, res, next) => {
 
     const updateData = { ...req.body };
 
-    if (req.files.photos) {
-      const deletePhotoPromises = product.files.photos.map((photoUrl) => {
-        return new Promise((resolve, reject) => {
-          const publicId = getPublicIdFromUrl(photoUrl);
-          console.log(`Public ID: ${publicId}`);
-          if (!publicId) {
-            return reject(
-              new Error(`Could not extract public_id from URL: ${photoUrl}`)
-            );
-          }
-          cloudinary.uploader.destroy(publicId, (error, result) => {
-            console.log(`Result from Cloudinary: `, result);
-            if (error) {
-              return reject(error);
-            } else {
-              resolve();
-            }
-          });
-        });
-      });
-      await Promise.all(deletePhotoPromises);
+    if (req?.files?.photos) {
+      const existingPhotoUrls = product.files.photos;
+      const newPhotoUrls = [];
 
       const photoUploadPromises = req.files.photos.map(async (photo) => {
         try {
@@ -485,23 +485,43 @@ exports.products_update = async (req, res, next) => {
             `Uploaded photo: ${photo.originalname}, URL: ${result.secure_url}`
           );
           await fs.promises.unlink(photo.path);
+          newPhotoUrls.push(result.secure_url);
           return result.secure_url;
         } catch (err) {
           console.error(err);
           throw new Error("Invalid image file for photos");
         }
       });
-      updateData["files.photos"] = await Promise.all(photoUploadPromises);
+      const uploadedPhotoUrls = await Promise.all(photoUploadPromises);
+
+      const deletePhotoPromises = existingPhotoUrls.map((photoUrl) => {
+        if (!uploadedPhotoUrls.includes(photoUrl)) {
+          return new Promise((resolve, reject) => {
+            const publicId = getPublicIdFromUrl(photoUrl);
+            console.log(`Public ID: ${publicId}`);
+            if (!publicId) {
+              return reject(
+                new Error(`Could not extract public_id from URL: ${photoUrl}`)
+              );
+            }
+            cloudinary.uploader.destroy(publicId, (error, result) => {
+              console.log(`Result from Cloudinary: `, result);
+              if (error) {
+                return reject(error);
+              } else {
+                resolve();
+              }
+            });
+          });
+        }
+      });
+      await Promise.all(deletePhotoPromises);
+
+      updateData["files.photos"] = uploadedPhotoUrls;
     }
 
-    if (req.files.video && req.files.video.length > 0) {
-      if (product.files.video) {
-        const publicId = getPublicIdFromUrl(product.files.video);
-        if (!publicId) {
-          throw new Error(`Invalid URL: ${product.files.video}`);
-        }
-        await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
-      }
+    if (req?.files?.video && req?.files?.video?.length > 0) {
+      const existingVideoUrl = product.files.video;
 
       const videoResult = await cloudinary.uploader.upload(
         req.files.video[0].path,
@@ -511,6 +531,15 @@ exports.products_update = async (req, res, next) => {
         }
       );
       await fs.promises.unlink(req.files.video[0].path);
+
+      if (existingVideoUrl && existingVideoUrl !== videoResult.secure_url) {
+        const publicId = getPublicIdFromUrl(existingVideoUrl);
+        if (!publicId) {
+          throw new Error(`Invalid URL: ${existingVideoUrl}`);
+        }
+        await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+      }
+
       updateData["files.video"] = videoResult.secure_url;
     }
 

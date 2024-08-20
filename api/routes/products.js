@@ -73,6 +73,7 @@ router.get(
   },
   ProductsController.products_get_recommend
 );
+router.get("/my-shop", checkAuth, isShop, ProductsController.products_get_my_shop);
 router.get("/:id", ProductsController.products_get_one);
 router.get("/shop/:shopId", ProductsController.products_get_by_shop);
 router.delete(
