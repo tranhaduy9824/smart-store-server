@@ -386,18 +386,20 @@ exports.products_delete = (req, res, next) => {
           return new Promise((resolve, reject) => {
             const publicId = getPublicIdFromUrl(photoUrl);
             if (!publicId) {
+              console.error(
+                `Could not extract public_id from URL: ${photoUrl}`
+              );
               return reject(
                 new Error(`Could not extract public_id from URL: ${photoUrl}`)
               );
             }
             cloudinary.uploader.destroy(publicId, (error, result) => {
-              console.log(`Result from Cloudinary: `, result);
               if (error) {
                 console.error(
                   `Error deleting photo with public_id ${publicId}: `,
                   error
                 );
-                reject(error);
+                return reject(error);
               } else {
                 console.log(
                   `Photo with public_id ${publicId} deleted successfully.`
@@ -408,52 +410,64 @@ exports.products_delete = (req, res, next) => {
           });
         }) || [];
 
-      const deleteVideoPromises = () => {
-        return new Promise((resolve, reject) => {
+      const deleteVideoPromise = () => {
+        if (product.files?.video) {
           const publicId = getPublicIdFromUrl(product.files.video);
           if (!publicId) {
-            console.error(`Invalid URL: ${product.files.video}`);
-            return reject(new Error(`Invalid URL: ${product.files.video}`));
+            console.error(`Invalid URL for video: ${product.files.video}`);
+            return Promise.reject(
+              new Error(`Invalid URL: ${product.files.video}`)
+            );
           }
-          console.log(`URL: ${product.files.video}, Public ID: ${publicId}`);
-          cloudinary.uploader.destroy(
-            publicId,
-            { resource_type: "video" },
-            (error, result) => {
-              console.log(`Result from Cloudinary: `, result);
-              if (error) {
-                console.error(
-                  `Error deleting video with public_id ${publicId}: `,
-                  error
-                );
-                reject(error);
-              } else {
-                console.log(
-                  `Video with public_id ${publicId} deleted successfully.`
-                );
-                resolve();
-              }
-            }
+
+          console.log(
+            `Attempting to delete video: ${product.files.video}, Public ID: ${publicId}`
           );
-        });
+
+          return new Promise((resolve, reject) => {
+            cloudinary.uploader.destroy(
+              publicId,
+              { resource_type: "video" },
+              (error, result) => {
+                if (error) {
+                  console.error(
+                    `Error deleting video with public_id ${publicId}: `,
+                    error
+                  );
+                  return reject(error);
+                } else {
+                  console.log(
+                    `Video with public_id ${publicId} deleted successfully.`
+                  );
+                  resolve();
+                }
+              }
+            );
+          });
+        } else {
+          console.log("No video to delete for this product.");
+          return Promise.resolve();
+        }
       };
 
-      return Promise.all([...deletePhotoPromises, deleteVideoPromises()])
+      return Promise.all([...deletePhotoPromises, deleteVideoPromise()])
         .then(() => {
           console.log("All delete promises have been resolved successfully.");
           return product.deleteOne();
         })
         .then(() => {
-          res.status(200).json({
-            message: "Product deleted",
-          });
+          res.status(200).json({ message: "Product deleted" });
+        })
+        .catch((err) => {
+          console.error("Error during product deletion:", err);
+          res
+            .status(500)
+            .json({ error: err.message || "Internal server error" });
         });
     })
     .catch((err) => {
-      console.error(err);
-      res.status(500).json({
-        error: err,
-      });
+      console.error("Error finding product:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
     });
 };
 
@@ -495,17 +509,18 @@ exports.products_update = async (req, res, next) => {
       const uploadedPhotoUrls = await Promise.all(photoUploadPromises);
 
       const deletePhotoPromises = existingPhotoUrls.map((photoUrl) => {
-        if (!uploadedPhotoUrls.includes(photoUrl)) {
+        if (
+          !uploadedPhotoUrls.includes(photoUrl) &&
+          photoUrl.includes("res.cloudinary.com")
+        ) {
           return new Promise((resolve, reject) => {
             const publicId = getPublicIdFromUrl(photoUrl);
-            console.log(`Public ID: ${publicId}`);
             if (!publicId) {
               return reject(
                 new Error(`Could not extract public_id from URL: ${photoUrl}`)
               );
             }
             cloudinary.uploader.destroy(publicId, (error, result) => {
-              console.log(`Result from Cloudinary: `, result);
               if (error) {
                 return reject(error);
               } else {
